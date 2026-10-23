@@ -1,0 +1,694 @@
+[
+  {
+    "trace_id": "G1-S2R-001",
+    "task_category": "standing_balance",
+    "scenario_name": "Nominal Quiet Standing on Flat Lab Floor (Isaac Gym -> Unitree G1)",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 34.2,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 85.0,
+      "kd_gain": 3.5,
+      "comm_jitter_ms": 0.8,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 46.5,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.018
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.03,
+      "sim_imu_noise_mismatch": 0.02,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.08,
+      "policy_action_oscillation_hz": 1.2
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L12", "event": "Isaac Gym standing policy exported (50Hz decimation, 200Hz PD loop)."},
+      {"timestamp_ms": 100, "source": "robot-run-log.txt:L45", "event": "Unitree G1 DDS low-level state stream locked at 500Hz (jitter=0.8ms)."},
+      {"timestamp_ms": 10000, "source": "robot-run-log.txt:L540", "event": "10s quiet standing completed; CoM sway within 8mm envelope."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-002",
+    "task_category": "standing_balance",
+    "scenario_name": "Standing Balance Abort due to Quaternion Convention Mismatch ([w,x,y,z] vs [x,y,z,w])",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 86.4,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 90.0,
+      "kd_gain": 3.0,
+      "comm_jitter_ms": 1.1,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 49.0,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 6.4,
+      "sim_to_real_tracking_rmse_rad": 0.642
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.04,
+      "sim_imu_noise_mismatch": 0.05,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": true,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.89,
+      "policy_action_oscillation_hz": 14.5
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L18", "event": "MuJoCo verification passed using [x,y,z,w] base orientation tensor."},
+      {"timestamp_ms": 15, "source": "interface-diff.md:L24", "event": "Unitree G1 SDK2 LowState IMU quaternion published in [w,x,y,z] order without permutation adapter."},
+      {"timestamp_ms": 65, "source": "robot-run-log.txt:L112", "event": "Policy perceived 180-deg roll inversion; hip pitch command spiked to 86.4 Nm."},
+      {"timestamp_ms": 71, "source": "robot-run-log.txt:L118", "event": "Hardware gantry safety harness and software E-Stop triggered within 6.4ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-003",
+    "task_category": "standing_balance",
+    "scenario_name": "Standing High-Frequency Ankle Chatter from Excessive Kp/Kd Stiffness Ratio",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 52.8,
+      "torque_limit_nm": 45.0,
+      "kp_gain": 165.0,
+      "kd_gain": 1.8,
+      "comm_jitter_ms": 1.4,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 68.2,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 8.2,
+      "sim_to_real_tracking_rmse_rad": 0.215
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.12,
+      "sim_imu_noise_mismatch": 0.38,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": true,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.34,
+      "policy_action_oscillation_hz": 28.0
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L30", "event": "Implicit PD integrator in Isaac Gym stable at Kp=165, Kd=1.8 (dt=20ms)."},
+      {"timestamp_ms": 420, "source": "robot-run-log.txt:L204", "event": "Ankle pitch resonant oscillation at 28Hz; peak torque reached 52.8 Nm (limit 45.0 Nm)."},
+      {"timestamp_ms": 428, "source": "robot-run-log.txt:L210", "event": "Torque safety gate tripped; transition to damping mode in 8.2ms."}
+    ],
+    "missing_evidence": ["video-notes.md (high-speed foot contact video not recorded)"],
+    "unconfirmed_hypotheses": ["Confirm whether Series-Parallel ankle linkage backlash amplified the 28Hz limit cycle."]
+  },
+  {
+    "trace_id": "G1-S2R-004",
+    "task_category": "standing_balance",
+    "scenario_name": "Standing Balance on Compliant Foam Mat with Domain-Randomized Contact Stiffness",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 41.0,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 80.0,
+      "kd_gain": 4.0,
+      "comm_jitter_ms": 0.9,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 48.1,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.024
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.05,
+      "sim_imu_noise_mismatch": 0.04,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.11,
+      "policy_action_oscillation_hz": 1.5
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L52", "event": "Trained with compliance randomization [1e4, 8e4] N/m."},
+      {"timestamp_ms": 15000, "source": "robot-run-log.txt:L760", "event": "Stable 15s stance on 20mm EVA foam mat; all safety gates green."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-005",
+    "task_category": "continuous_walking",
+    "scenario_name": "Nominal 0.8 m/s Forward Trot-Walk Across 10m Lab Corridor",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 64.5,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 95.0,
+      "kd_gain": 4.5,
+      "comm_jitter_ms": 1.2,
+      "packet_loss_pct": 0.05,
+      "peak_winding_temp_c": 58.4,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.039
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.06,
+      "sim_imu_noise_mismatch": 0.05,
+      "protocol_frame_drop_rate": 0.0005,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.14,
+      "policy_action_oscillation_hz": 2.1
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L88", "event": "Velocity command vx=0.8 m/s tracked with 0.031 rad RMSE in MuJoCosim2sim."},
+      {"timestamp_ms": 12500, "source": "robot-run-log.txt:L625", "event": "Completed 10m corridor walk; peak knee torque 64.5 Nm, winding temp 58.4C."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-006",
+    "task_category": "continuous_walking",
+    "scenario_name": "Lateral Foot Slip on Low-Friction Epoxy Tile Unmodeled in Isaac Gym",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 79.2,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 95.0,
+      "kd_gain": 4.0,
+      "comm_jitter_ms": 1.5,
+      "packet_loss_pct": 0.1,
+      "peak_winding_temp_c": 61.0,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 7.8,
+      "sim_to_real_tracking_rmse_rad": 0.312
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.68,
+      "sim_imu_noise_mismatch": 0.12,
+      "protocol_frame_drop_rate": 0.001,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.52,
+      "policy_action_oscillation_hz": 6.4
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L104", "event": "Isaac Gym friction domain randomization bounded to [0.60, 1.25]."},
+      {"timestamp_ms": 4300, "source": "video-notes.md:L14", "event": "At t=4.3s, left foot entered dust-coated epoxy tile (measured mu=0.22); 14cm lateral slip observed."},
+      {"timestamp_ms": 4480, "source": "robot-run-log.txt:L229", "event": "Roll angle exceeded 22 deg threshold; protective E-Stop damping engaged in 7.8ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-007",
+    "task_category": "continuous_walking",
+    "scenario_name": "CycloneDDS Wi-Fi Bridge Jitter Spike (18.4ms) Causing Phase Lag During Swing Phase",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 84.1,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 95.0,
+      "kd_gain": 4.5,
+      "comm_jitter_ms": 18.4,
+      "packet_loss_pct": 4.2,
+      "peak_winding_temp_c": 60.5,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 9.1,
+      "sim_to_real_tracking_rmse_rad": 0.289
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.08,
+      "sim_imu_noise_mismatch": 0.06,
+      "protocol_frame_drop_rate": 0.042,
+      "protocol_transform_mismatch": true,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.41,
+      "policy_action_oscillation_hz": 9.8
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 3100, "source": "interface-diff.md:L51", "event": "Telemetry multicast routed over shared Wi-Fi interface instead of dedicated eth0 NIC."},
+      {"timestamp_ms": 3140, "source": "robot-run-log.txt:L164", "event": "DDS inter-packet interval spiked to 18.4ms with 4.2% packet loss during right-leg swing."},
+      {"timestamp_ms": 3190, "source": "robot-run-log.txt:L170", "event": "Communication watchdog tripped (>5.0ms jitter gate); soft-damping E-Stop executed in 9.1ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-008",
+    "task_category": "continuous_walking",
+    "scenario_name": "Continuous 20-Minute Endurance Walk Triggering Knee Pitch Winding Thermal Derating (79.4C)",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 74.0,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 90.0,
+      "kd_gain": 4.2,
+      "comm_jitter_ms": 1.1,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 79.4,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 5.9,
+      "sim_to_real_tracking_rmse_rad": 0.194
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.07,
+      "sim_imu_noise_mismatch": 0.05,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": true,
+      "policy_ood_score": 0.29,
+      "policy_action_oscillation_hz": 3.1
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 1140000, "source": "robot-run-log.txt:L5700", "event": "Right knee pitch motor winding temperature crossed 75.0C warning gate (measured 79.4C)."},
+      {"timestamp_ms": 1140200, "source": "robot-run-log.txt:L5710", "event": "Motor driver firmware derated max current by 30%; knee flexion sagged by 0.19 rad."},
+      {"timestamp_ms": 1140206, "source": "robot-run-log.txt:L5715", "event": "Thermal safety gate initiated controlled crouch-and-lock E-Stop in 5.9ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": ["Evaluate adding copper-loss torque-squared penalty weight w_tau=0.002 in RL reward."]
+  },
+  {
+    "trace_id": "G1-S2R-009",
+    "task_category": "smooth_stopping",
+    "scenario_name": "Nominal Deceleration from 1.0 m/s to Quiet Double-Support Stance",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 59.8,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 90.0,
+      "kd_gain": 4.5,
+      "comm_jitter_ms": 0.9,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 52.0,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.028
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.04,
+      "sim_imu_noise_mismatch": 0.03,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.09,
+      "policy_action_oscillation_hz": 1.6
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 2000, "source": "robot-run-log.txt:L100", "event": "Zero-velocity ramp command issued over 600ms window."},
+      {"timestamp_ms": 2800, "source": "robot-run-log.txt:L140", "event": "Captured CoM within 2 capture-point steps; zero foot scuffing."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-010",
+    "task_category": "smooth_stopping",
+    "scenario_name": "In-Place Stepping Limit Cycle After Zero-Velocity Command (Gait Phase Clock Not Gated)",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 68.2,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 90.0,
+      "kd_gain": 4.0,
+      "comm_jitter_ms": 1.0,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 57.3,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 7.1,
+      "sim_to_real_tracking_rmse_rad": 0.241
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.05,
+      "sim_imu_noise_mismatch": 0.06,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.78,
+      "policy_action_oscillation_hz": 11.4
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 3000, "source": "sim-log.txt:L142", "event": "Periodic clock observation [sin(2*pi*phi), cos(2*pi*phi)] remained active when ||v_cmd|| < 0.05 m/s."},
+      {"timestamp_ms": 3500, "source": "video-notes.md:L29", "event": "Robot failed to lock double-support stance and continued marching in place with 4cm yaw drift per step."},
+      {"timestamp_ms": 5200, "source": "robot-run-log.txt:L260", "event": "Operator triggered soft-stop gate due to uncommanded yaw drift near lab workbench (latency=7.1ms)."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-011",
+    "task_category": "smooth_stopping",
+    "scenario_name": "Forward Pitch Overshoot During Step-Input Stop due to Unmodeled 12ms Actuator Delay",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 91.5,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 100.0,
+      "kd_gain": 4.0,
+      "comm_jitter_ms": 1.3,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 55.2,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 6.8,
+      "sim_to_real_tracking_rmse_rad": 0.276
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.49,
+      "sim_imu_noise_mismatch": 0.44,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": true,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.46,
+      "policy_action_oscillation_hz": 7.2
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L165", "event": "Simulation trained with zero transport delay on joint torque actuation."},
+      {"timestamp_ms": 1820, "source": "robot-run-log.txt:L91", "event": "Instantaneous vx: 1.2 -> 0.0 m/s command caused 12ms delayed braking torque; hip pitch hit 91.5 Nm (>88.0 Nm limit)."},
+      {"timestamp_ms": 1827, "source": "robot-run-log.txt:L95", "event": "Hardware torque limit gate G1 tripped; E-Stop engaged in 6.8ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-012",
+    "task_category": "smooth_stopping",
+    "scenario_name": "Smooth Deceleration with Phase-Clock Zero-Velocity Gating and Delay Randomization",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 57.1,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 90.0,
+      "kd_gain": 4.5,
+      "comm_jitter_ms": 0.8,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 51.2,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.022
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.04,
+      "sim_imu_noise_mismatch": 0.03,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.07,
+      "policy_action_oscillation_hz": 1.1
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L190", "event": "Trained with [5ms, 20ms] actuation delay randomization and explicit stance phase lock."},
+      {"timestamp_ms": 2400, "source": "robot-run-log.txt:L120", "event": "Decelerated from 1.2 m/s to full quiet stance in 550ms; peak torque 57.1 Nm."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-013",
+    "task_category": "external_perturbation_rejection",
+    "scenario_name": "Nominal 35N Lateral Impulse Push Recovery During Stance",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 71.4,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 95.0,
+      "kd_gain": 4.8,
+      "comm_jitter_ms": 1.0,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 54.0,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.045
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.05,
+      "sim_imu_noise_mismatch": 0.04,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.18,
+      "policy_action_oscillation_hz": 2.4
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 1500, "source": "video-notes.md:L41", "event": "35N lateral impulse applied to torso link via calibrated force rod."},
+      {"timestamp_ms": 1950, "source": "robot-run-log.txt:L98", "event": "Executed single protective side-step; recovered equilibrium in 450ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-014",
+    "task_category": "external_perturbation_rejection",
+    "scenario_name": "Student Policy Distillation Drift Under 60N Dorsal Push (OOD History Encoder Collapse)",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 85.9,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 95.0,
+      "kd_gain": 4.5,
+      "comm_jitter_ms": 1.1,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 56.8,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 7.5,
+      "sim_to_real_tracking_rmse_rad": 0.418
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.09,
+      "sim_imu_noise_mismatch": 0.11,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.92,
+      "policy_action_oscillation_hz": 13.6
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L215", "event": "Teacher policy trained with privileged external force vector; student 50-step proprioceptive TCN trained only up to 40N pushes."},
+      {"timestamp_ms": 2100, "source": "robot-run-log.txt:L105", "event": "60N dorsal push drove latent embedding L2 distance 3.8x beyond training distribution (OOD=0.92)."},
+      {"timestamp_ms": 2280, "source": "robot-run-log.txt:L114", "event": "Student policy emitted saturated backward hip extension; safety harness + E-Stop triggered in 7.5ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-015",
+    "task_category": "external_perturbation_rejection",
+    "scenario_name": "IMU Angular Velocity LPF Cutoff Mismatch Delaying Push Reflex by 35ms",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 89.4,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 95.0,
+      "kd_gain": 4.5,
+      "comm_jitter_ms": 1.2,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 55.9,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 6.2,
+      "sim_to_real_tracking_rmse_rad": 0.335
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.15,
+      "sim_imu_noise_mismatch": 0.64,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": true,
+      "hw_torque_saturation": true,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.48,
+      "policy_action_oscillation_hz": 8.5
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "interface-diff.md:L78", "event": "Real robot ROS 2 node applied 10Hz Butterworth LPF to gyroscope angular velocity (35ms group delay), whereas Isaac Gym used raw unfiltered angular velocity."},
+      {"timestamp_ms": 1640, "source": "robot-run-log.txt:L82", "event": "Delayed push reflex caused late recovery step; knee torque hit 89.4 Nm (>88.0 Nm gate)."},
+      {"timestamp_ms": 1646, "source": "robot-run-log.txt:L86", "event": "Torque safety gate G1 triggered E-Stop in 6.2ms."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-016",
+    "task_category": "external_perturbation_rejection",
+    "scenario_name": "65N Multi-Directional Push Rejection with Matched 40Hz Gyro Filter & Push Curriculum",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 78.6,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 95.0,
+      "kd_gain": 4.8,
+      "comm_jitter_ms": 0.9,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 56.1,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.051
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.06,
+      "sim_imu_noise_mismatch": 0.05,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.21,
+      "policy_action_oscillation_hz": 2.7
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L260", "event": "Aligned 40Hz IMU filter in both Isaac Gym and ROS 2 wrapper; expanded push curriculum to 80N."},
+      {"timestamp_ms": 2200, "source": "robot-run-log.txt:L110", "event": "Absorbed 65N dorsal and lateral pushes via two-step capture point recovery; peak torque 78.6 Nm."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-017",
+    "task_category": "fall_recovery",
+    "scenario_name": "Nominal Protective Squat-and-Damp Transition Upon Trip Detection",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 69.0,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 60.0,
+      "kd_gain": 6.0,
+      "comm_jitter_ms": 0.8,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 50.4,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.036
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.05,
+      "sim_imu_noise_mismatch": 0.04,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.16,
+      "policy_action_oscillation_hz": 1.8
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 900, "source": "robot-run-log.txt:L45", "event": "25mm obstacle trip detected; policy lowered CoM by 18cm and recovered balance without ground impact."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-018",
+    "task_category": "fall_recovery",
+    "scenario_name": "Hardware E-Stop Relay Contactor Delay (22.5ms) Due to Blocking Logging Lock in Safety Thread",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 94.8,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 100.0,
+      "kd_gain": 4.0,
+      "comm_jitter_ms": 2.1,
+      "packet_loss_pct": 0.2,
+      "peak_winding_temp_c": 62.1,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 22.5,
+      "sim_to_real_tracking_rmse_rad": 0.485
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.08,
+      "sim_imu_noise_mismatch": 0.07,
+      "protocol_frame_drop_rate": 0.002,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": true,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.61,
+      "policy_action_oscillation_hz": 9.1
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 1200, "source": "robot-run-log.txt:L302", "event": "Body pitch exceeded 35 deg fall threshold during obstacle trip test."},
+      {"timestamp_ms": 1222, "source": "robot-run-log.txt:L310", "event": "Synchronous disk flush in telemetry logger blocked safety thread for 22.5ms (>15.0ms E-Stop gate); hip torque spiked to 94.8 Nm before damping."},
+      {"timestamp_ms": 1223, "source": "video-notes.md:L62", "event": "Overhead gantry caught torso prior to floor contact; zero structural damage."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-019",
+    "task_category": "fall_recovery",
+    "scenario_name": "Self-Collision Between Knee and Forearm During Prone Get-Up Due to Missing Mesh Capsule in Isaac Gym",
+    "deployment_status": "INCIDENT_ABORT",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 82.0,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 85.0,
+      "kd_gain": 5.0,
+      "comm_jitter_ms": 1.0,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 59.0,
+      "estop_triggered": true,
+      "estop_trigger_latency_ms": 6.9,
+      "sim_to_real_tracking_rmse_rad": 0.362
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.74,
+      "sim_imu_noise_mismatch": 0.08,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.55,
+      "policy_action_oscillation_hz": 5.2
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L310", "event": "URDF simplified collision spheres disabled forearm-to-thigh self-collision pair for faster SPS."},
+      {"timestamp_ms": 1450, "source": "video-notes.md:L79", "event": "During prone recovery fold, left forearm contacted left knee shell."},
+      {"timestamp_ms": 1457, "source": "robot-run-log.txt:L412", "event": "Joint tracking error guard tripped E-Stop within 6.9ms before shell scratch."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  },
+  {
+    "trace_id": "G1-S2R-020",
+    "task_category": "fall_recovery",
+    "scenario_name": "Full Prone-to-Standing Recovery with Lock-Free Safety Thread & Full Self-Collision Capsules",
+    "deployment_status": "PASS",
+    "telemetry_metrics": {
+      "peak_joint_torque_nm": 76.2,
+      "torque_limit_nm": 88.0,
+      "kp_gain": 85.0,
+      "kd_gain": 5.5,
+      "comm_jitter_ms": 0.7,
+      "packet_loss_pct": 0.0,
+      "peak_winding_temp_c": 57.5,
+      "estop_triggered": false,
+      "estop_trigger_latency_ms": 0.0,
+      "sim_to_real_tracking_rmse_rad": 0.041
+    },
+    "layer_signals": {
+      "sim_contact_friction_gap": 0.05,
+      "sim_imu_noise_mismatch": 0.04,
+      "protocol_frame_drop_rate": 0.0,
+      "protocol_transform_mismatch": false,
+      "hw_torque_saturation": false,
+      "hw_thermal_warning": false,
+      "policy_ood_score": 0.19,
+      "policy_action_oscillation_hz": 2.0
+    },
+    "evidence_logs": [
+      {"timestamp_ms": 0, "source": "sim-log.txt:L340", "event": "Enabled full convex-hull self-collision pairs and lock-free SPSC ring buffer for RT safety thread."},
+      {"timestamp_ms": 3800, "source": "robot-run-log.txt:L520", "event": "Completed prone-to-standing recovery in 3.8s; minimum self-clearance 34mm, all 5 safety gates passed."}
+    ],
+    "missing_evidence": [],
+    "unconfirmed_hypotheses": []
+  }
+]

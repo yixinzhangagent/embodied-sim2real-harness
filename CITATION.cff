@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use this Four-Layer Blameless Postmortem & Humanoid Sim-to-Real Evaluation Harness in your robotics or embodied AI research, please cite it using the metadata below."
+type: software
+title: "Four-Layer Blameless Postmortem & Humanoid Sim-to-Real Evaluation Harness"
+version: "1.0.0"
+date-released: "2026-10-22"
+license: Apache-2.0
+repository-code: "https://github.com/yixinzhangagent/embodied-sim2real-harness"
+url: "https://yixinzhangagent.github.io"
+authors:
+  - family-names: "Zhang"
+    given-names: "Yixin"
+    email: "zyxcambridge@gmail.com"
+    affiliation: "Yuansiwujie"
+    orcid: "https://orcid.org/0009-0004-7641-4450"
+keywords:
+  - "sim-to-real"
+  - "humanoid robotics"
+  - "Unitree G1"
+  - "blameless postmortem"
+  - "evaluation harness"
+  - "embodied AI"
+  - "safety gates"
+  - "trajectory replay"
+abstract: >-
+  Deterministic evaluation harness and four-layer blameless incident postmortem
+  framework for humanoid robot Sim-to-Real deployment pipelines (Isaac Gym /
+  MuJoCo -> Interface Protocol -> Unitree G1 Hardware). Reconstructs
+  timestamp-verified incident timelines from multi-source telemetry logs and
+  attributes Sim-to-Real failures across four orthogonal layers: (1) Simulation
+  Environment (contact physics, terrain, sensor noise), (2) Interface Protocol
+  (frame rate, coordinate transforms, unit/version mismatch), (3) Hardware &
+  Safety (joint limits, thermal/current protection, communication drop, E-stop
+  gates), and (4) Model Policy (out-of-distribution states, action bounds,
+  reward/observation design).
+preferred-citation:
+  type: software
+  title: "Four-Layer Blameless Postmortem & Humanoid Sim-to-Real Evaluation Harness"
+  authors:
+    - family-names: "Zhang"
+      given-names: "Yixin"
+      email: "zyxcambridge@gmail.com"
+      affiliation: "Yuansiwujie"
+      orcid: "https://orcid.org/0009-0004-7641-4450"
+  year: 2026
+  version: "1.0.0"
+  license: Apache-2.0
+  url: "https://github.com/yixinzhangagent/embodied-sim2real-harness"

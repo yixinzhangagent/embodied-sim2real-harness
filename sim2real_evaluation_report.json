@@ -1,0 +1,1877 @@
+{
+  "metadata": {
+    "harness_name": "Four-Layer Blameless Postmortem & Humanoid Sim-to-Real Evaluation Harness",
+    "version": "1.0.0",
+    "author": "Yixin Zhang (张益新)",
+    "affiliation": "Yuansiwujie (源思无界)",
+    "orcid": "https://orcid.org/0009-0004-7641-4450",
+    "repository": "https://github.com/yixinzhangagent/embodied-sim2real-harness",
+    "homepage": "https://yixinzhangagent.github.io",
+    "robot_platform": "Unitree G1 Humanoid",
+    "evaluated_at_utc": "2026-10-23T22:24:54Z",
+    "total_traces_evaluated": 20,
+    "nominal_pass_traces": 9,
+    "incident_postmortem_traces": 11,
+    "hil_safety_gates_all_green_count": 14,
+    "blameless_compliance_rate_pct": 100.0
+  },
+  "root_cause_layer_distribution": {
+    "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 3,
+    "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 3,
+    "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 3,
+    "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 2
+  },
+  "task_category_breakdown": {
+    "standing_balance": {
+      "total": 4,
+      "pass": 2,
+      "incident_abort": 2
+    },
+    "continuous_walking": {
+      "total": 4,
+      "pass": 1,
+      "incident_abort": 3
+    },
+    "smooth_stopping": {
+      "total": 4,
+      "pass": 2,
+      "incident_abort": 2
+    },
+    "external_perturbation_rejection": {
+      "total": 4,
+      "pass": 2,
+      "incident_abort": 2
+    },
+    "fall_recovery": {
+      "total": 4,
+      "pass": 2,
+      "incident_abort": 2
+    }
+  },
+  "trace_evaluations": [
+    {
+      "trace_id": "G1-S2R-001",
+      "task_category": "standing_balance",
+      "scenario_name": "Nominal Quiet Standing on Flat Lab Floor (Isaac Gym -> Unitree G1)",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "34.2 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=85.0, Kd=3.5 (Kp/Kd=24.3)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=0.8 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "46.5 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.026,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.066
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L540).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L12",
+          "event": "Isaac Gym standing policy exported (50Hz decimation, 200Hz PD loop)."
+        },
+        {
+          "timestamp_ms": 100,
+          "source": "robot-run-log.txt:L45",
+          "event": "Unitree G1 DDS low-level state stream locked at 500Hz (jitter=0.8ms)."
+        },
+        {
+          "timestamp_ms": 10000,
+          "source": "robot-run-log.txt:L540",
+          "event": "10s quiet standing completed; CoM sway within 8mm envelope."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-001 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-002",
+      "task_category": "standing_balance",
+      "scenario_name": "Standing Balance Abort due to Quaternion Convention Mismatch ([w,x,y,z] vs [x,y,z,w])",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "86.4 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=90.0, Kd=3.0 (Kp/Kd=30.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.1 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "49.0 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "6.4 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]",
+      "contributing_layers": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]"
+      ],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.045,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.85,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.521
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK] (score=0.85): [sim-log.txt:L18 @ 0ms] MuJoCo verification passed using [x,y,z,w] base orientation tensor.; [interface-diff.md:L24 @ 15ms] Unitree G1 SDK2 LowState IMU quaternion published in [w,x,y,z] order without permutation adapter.",
+      "contributing_factors": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.52) amplified transient divergence (evidence: robot-run-log.txt:L112 @ 65ms, robot-run-log.txt:L118 @ 71ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L18",
+          "event": "MuJoCo verification passed using [x,y,z,w] base orientation tensor."
+        },
+        {
+          "timestamp_ms": 15,
+          "source": "interface-diff.md:L24",
+          "event": "Unitree G1 SDK2 LowState IMU quaternion published in [w,x,y,z] order without permutation adapter."
+        },
+        {
+          "timestamp_ms": 65,
+          "source": "robot-run-log.txt:L112",
+          "event": "Policy perceived 180-deg roll inversion; hip pitch command spiked to 86.4 Nm."
+        },
+        {
+          "timestamp_ms": 71,
+          "source": "robot-run-log.txt:L118",
+          "event": "Hardware gantry safety harness and software E-Stop triggered within 6.4ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]",
+          "action": "Remediate Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK] discrepancy identified in G1-S2R-002 (Standing Balance Abort due to Quaternion Convention Mismatch ([w,x,y,z] vs [x,y,z,w])).",
+          "acceptance_criteria": "Re-run G1-S2R-002 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-003",
+      "task_category": "standing_balance",
+      "scenario_name": "Standing High-Frequency Ankle Chatter from Excessive Kp/Kd Stiffness Ratio",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": false,
+      "failed_safety_gates": [
+        "G1_TORQUE_LIMIT",
+        "G2_PD_IMPEDANCE"
+      ],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": false,
+          "observed_value": "52.8 Nm",
+          "threshold_spec": "<= 45.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": false,
+          "observed_value": "Kp=165.0, Kd=1.8 (Kp/Kd=91.7)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.4 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "68.2 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "8.2 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+      "contributing_layers": [
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]"
+      ],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.587,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.8,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.548
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] (score=0.80): [sim-log.txt:L30 @ 0ms] Implicit PD integrator in Isaac Gym stable at Kp=165, Kd=1.8 (dt=20ms).; [robot-run-log.txt:L204 @ 420ms] Ankle pitch resonant oscillation at 28Hz; peak torque reached 52.8 Nm (limit 45.0 Nm).",
+      "contributing_factors": [
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo] (score=0.59) amplified transient divergence (evidence: robot-run-log.txt:L204 @ 420ms, robot-run-log.txt:L210 @ 428ms).",
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.55) amplified transient divergence (evidence: robot-run-log.txt:L204 @ 420ms, robot-run-log.txt:L210 @ 428ms).",
+        "Hardware-in-the-Loop safety gate(s) G1_TORQUE_LIMIT, G2_PD_IMPEDANCE intercepted the excursion (evidence: robot-run-log.txt:L210 @ 428ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L30",
+          "event": "Implicit PD integrator in Isaac Gym stable at Kp=165, Kd=1.8 (dt=20ms)."
+        },
+        {
+          "timestamp_ms": 420,
+          "source": "robot-run-log.txt:L204",
+          "event": "Ankle pitch resonant oscillation at 28Hz; peak torque reached 52.8 Nm (limit 45.0 Nm)."
+        },
+        {
+          "timestamp_ms": 428,
+          "source": "robot-run-log.txt:L210",
+          "event": "Torque safety gate tripped; transition to damping mode in 8.2ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Remediate Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] discrepancy identified in G1-S2R-003 (Standing High-Frequency Ankle Chatter from Excessive Kp/Kd Stiffness Ratio).",
+          "acceptance_criteria": "Re-run G1-S2R-003 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [
+        "video-notes.md (high-speed foot contact video not recorded)"
+      ],
+      "unconfirmed_hypotheses": [
+        "Confirm whether Series-Parallel ankle linkage backlash amplified the 28Hz limit cycle."
+      ],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-004",
+      "task_category": "standing_balance",
+      "scenario_name": "Standing Balance on Compliant Foam Mat with Domain-Randomized Contact Stiffness",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "41.0 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=80.0, Kd=4.0 (Kp/Kd=20.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=0.9 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "48.1 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.046,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.089
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L760).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L52",
+          "event": "Trained with compliance randomization [1e4, 8e4] N/m."
+        },
+        {
+          "timestamp_ms": 15000,
+          "source": "robot-run-log.txt:L760",
+          "event": "Stable 15s stance on 20mm EVA foam mat; all safety gates green."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-004 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-005",
+      "task_category": "continuous_walking",
+      "scenario_name": "Nominal 0.8 m/s Forward Trot-Walk Across 10m Lab Corridor",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "64.5 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=95.0, Kd=4.5 (Kp/Kd=21.1)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.2 ms, loss=0.05%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "58.4 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.056,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.005,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.116
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L625).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L88",
+          "event": "Velocity command vx=0.8 m/s tracked with 0.031 rad RMSE in MuJoCosim2sim."
+        },
+        {
+          "timestamp_ms": 12500,
+          "source": "robot-run-log.txt:L625",
+          "event": "Completed 10m corridor walk; peak knee torque 64.5 Nm, winding temp 58.4C."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-005 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-006",
+      "task_category": "continuous_walking",
+      "scenario_name": "Lateral Foot Slip on Low-Friction Epoxy Tile Unmodeled in Isaac Gym",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "79.2 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=95.0, Kd=4.0 (Kp/Kd=23.8)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.5 ms, loss=0.10%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "61.0 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "7.8 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+      "contributing_layers": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]"
+      ],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.428,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.01,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.413
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 1: Simulation Environment [Isaac Gym / MuJoCo] (score=0.43): [sim-log.txt:L104 @ 0ms] Isaac Gym friction domain randomization bounded to [0.60, 1.25].; [video-notes.md:L14 @ 4300ms] At t=4.3s, left foot entered dust-coated epoxy tile (measured mu=0.22); 14cm lateral slip observed.",
+      "contributing_factors": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.41) amplified transient divergence (evidence: video-notes.md:L14 @ 4300ms, robot-run-log.txt:L229 @ 4480ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L104",
+          "event": "Isaac Gym friction domain randomization bounded to [0.60, 1.25]."
+        },
+        {
+          "timestamp_ms": 4300,
+          "source": "video-notes.md:L14",
+          "event": "At t=4.3s, left foot entered dust-coated epoxy tile (measured mu=0.22); 14cm lateral slip observed."
+        },
+        {
+          "timestamp_ms": 4480,
+          "source": "robot-run-log.txt:L229",
+          "event": "Roll angle exceeded 22 deg threshold; protective E-Stop damping engaged in 7.8ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+          "action": "Remediate Layer 1: Simulation Environment [Isaac Gym / MuJoCo] discrepancy identified in G1-S2R-006 (Lateral Foot Slip on Low-Friction Epoxy Tile Unmodeled in Isaac Gym).",
+          "acceptance_criteria": "Re-run G1-S2R-006 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-007",
+      "task_category": "continuous_walking",
+      "scenario_name": "CycloneDDS Wi-Fi Bridge Jitter Spike (18.4ms) Causing Phase Lag During Swing Phase",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": false,
+      "failed_safety_gates": [
+        "G3_COMM_JITTER"
+      ],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "84.1 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=95.0, Kd=4.5 (Kp/Kd=21.1)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": false,
+          "observed_value": "jitter=18.4 ms, loss=4.20%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "60.5 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "9.1 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.071,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 1.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.266
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK] (score=1.00): [interface-diff.md:L51 @ 3100ms] Telemetry multicast routed over shared Wi-Fi interface instead of dedicated eth0 NIC.; [robot-run-log.txt:L164 @ 3140ms] DDS inter-packet interval spiked to 18.4ms with 4.2% packet loss during right-leg swing.",
+      "contributing_factors": [
+        "Hardware-in-the-Loop safety gate(s) G3_COMM_JITTER intercepted the excursion (evidence: robot-run-log.txt:L170 @ 3190ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 3100,
+          "source": "interface-diff.md:L51",
+          "event": "Telemetry multicast routed over shared Wi-Fi interface instead of dedicated eth0 NIC."
+        },
+        {
+          "timestamp_ms": 3140,
+          "source": "robot-run-log.txt:L164",
+          "event": "DDS inter-packet interval spiked to 18.4ms with 4.2% packet loss during right-leg swing."
+        },
+        {
+          "timestamp_ms": 3190,
+          "source": "robot-run-log.txt:L170",
+          "event": "Communication watchdog tripped (>5.0ms jitter gate); soft-damping E-Stop executed in 9.1ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]",
+          "action": "Remediate Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK] discrepancy identified in G1-S2R-007 (CycloneDDS Wi-Fi Bridge Jitter Spike (18.4ms) Causing Phase Lag During Swing Phase).",
+          "acceptance_criteria": "Re-run G1-S2R-007 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-008",
+      "task_category": "continuous_walking",
+      "scenario_name": "Continuous 20-Minute Endurance Walk Triggering Knee Pitch Winding Thermal Derating (79.4C)",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": false,
+      "failed_safety_gates": [
+        "G4_THERMAL_BOUND"
+      ],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "74.0 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=90.0, Kd=4.2 (Kp/Kd=21.4)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.1 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": false,
+          "observed_value": "79.4 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "5.9 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.061,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.85,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.225
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] (score=0.85): [robot-run-log.txt:L5700 @ 1140000ms] Right knee pitch motor winding temperature crossed 75.0C warning gate (measured 79.4C).; [robot-run-log.txt:L5710 @ 1140200ms] Motor driver firmware derated max current by 30%; knee flexion sagged by 0.19 rad.",
+      "contributing_factors": [
+        "Hardware-in-the-Loop safety gate(s) G4_THERMAL_BOUND intercepted the excursion (evidence: robot-run-log.txt:L5715 @ 1140206ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 1140000,
+          "source": "robot-run-log.txt:L5700",
+          "event": "Right knee pitch motor winding temperature crossed 75.0C warning gate (measured 79.4C)."
+        },
+        {
+          "timestamp_ms": 1140200,
+          "source": "robot-run-log.txt:L5710",
+          "event": "Motor driver firmware derated max current by 30%; knee flexion sagged by 0.19 rad."
+        },
+        {
+          "timestamp_ms": 1140206,
+          "source": "robot-run-log.txt:L5715",
+          "event": "Thermal safety gate initiated controlled crouch-and-lock E-Stop in 5.9ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Remediate Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] discrepancy identified in G1-S2R-008 (Continuous 20-Minute Endurance Walk Triggering Knee Pitch Winding Thermal Derating (79.4C)).",
+          "acceptance_criteria": "Re-run G1-S2R-008 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [
+        "Evaluate adding copper-loss torque-squared penalty weight w_tau=0.002 in RL reward."
+      ],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-009",
+      "task_category": "smooth_stopping",
+      "scenario_name": "Nominal Deceleration from 1.0 m/s to Quiet Double-Support Stance",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "59.8 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=90.0, Kd=4.5 (Kp/Kd=20.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=0.9 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "52.0 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.036,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.077
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L140).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 2000,
+          "source": "robot-run-log.txt:L100",
+          "event": "Zero-velocity ramp command issued over 600ms window."
+        },
+        {
+          "timestamp_ms": 2800,
+          "source": "robot-run-log.txt:L140",
+          "event": "Captured CoM within 2 capture-point steps; zero foot scuffing."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-009 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-010",
+      "task_category": "smooth_stopping",
+      "scenario_name": "In-Place Stepping Limit Cycle After Zero-Velocity Command (Gait Phase Clock Not Gated)",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "68.2 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=90.0, Kd=4.0 (Kp/Kd=22.5)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.0 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "57.3 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "7.1 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.055,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.89
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.89): [sim-log.txt:L142 @ 3000ms] Periodic clock observation [sin(2*pi*phi), cos(2*pi*phi)] remained active when ||v_cmd|| < 0.05 m/s.; [video-notes.md:L29 @ 3500ms] Robot failed to lock double-support stance and continued marching in place with 4cm yaw drift per step.",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 3000,
+          "source": "sim-log.txt:L142",
+          "event": "Periodic clock observation [sin(2*pi*phi), cos(2*pi*phi)] remained active when ||v_cmd|| < 0.05 m/s."
+        },
+        {
+          "timestamp_ms": 3500,
+          "source": "video-notes.md:L29",
+          "event": "Robot failed to lock double-support stance and continued marching in place with 4cm yaw drift per step."
+        },
+        {
+          "timestamp_ms": 5200,
+          "source": "robot-run-log.txt:L260",
+          "event": "Operator triggered soft-stop gate due to uncommanded yaw drift near lab workbench (latency=7.1ms)."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]",
+          "action": "Remediate Layer 4: Policy & Model [RL Locomotion / Distillation Drift] discrepancy identified in G1-S2R-010 (In-Place Stepping Limit Cycle After Zero-Velocity Command (Gait Phase Clock Not Gated)).",
+          "acceptance_criteria": "Re-run G1-S2R-010 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-011",
+      "task_category": "smooth_stopping",
+      "scenario_name": "Forward Pitch Overshoot During Step-Input Stop due to Unmodeled 12ms Actuator Delay",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": false,
+      "failed_safety_gates": [
+        "G1_TORQUE_LIMIT"
+      ],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": false,
+          "observed_value": "91.5 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=100.0, Kd=4.0 (Kp/Kd=25.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.3 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "55.2 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "6.8 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+      "contributing_layers": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]",
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]"
+      ],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.468,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.35,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.383
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 1: Simulation Environment [Isaac Gym / MuJoCo] (score=0.47): [sim-log.txt:L165 @ 0ms] Simulation trained with zero transport delay on joint torque actuation.; [robot-run-log.txt:L91 @ 1820ms] Instantaneous vx: 1.2 -> 0.0 m/s command caused 12ms delayed braking torque; hip pitch hit 91.5 Nm (>88.0 Nm limit).",
+      "contributing_factors": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.38) amplified transient divergence (evidence: robot-run-log.txt:L91 @ 1820ms, robot-run-log.txt:L95 @ 1827ms).",
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] (score=0.35) amplified transient divergence (evidence: robot-run-log.txt:L91 @ 1820ms, robot-run-log.txt:L95 @ 1827ms).",
+        "Hardware-in-the-Loop safety gate(s) G1_TORQUE_LIMIT intercepted the excursion (evidence: robot-run-log.txt:L95 @ 1827ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L165",
+          "event": "Simulation trained with zero transport delay on joint torque actuation."
+        },
+        {
+          "timestamp_ms": 1820,
+          "source": "robot-run-log.txt:L91",
+          "event": "Instantaneous vx: 1.2 -> 0.0 m/s command caused 12ms delayed braking torque; hip pitch hit 91.5 Nm (>88.0 Nm limit)."
+        },
+        {
+          "timestamp_ms": 1827,
+          "source": "robot-run-log.txt:L95",
+          "event": "Hardware torque limit gate G1 tripped; E-Stop engaged in 6.8ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+          "action": "Remediate Layer 1: Simulation Environment [Isaac Gym / MuJoCo] discrepancy identified in G1-S2R-011 (Forward Pitch Overshoot During Step-Input Stop due to Unmodeled 12ms Actuator Delay).",
+          "acceptance_criteria": "Re-run G1-S2R-011 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-012",
+      "task_category": "smooth_stopping",
+      "scenario_name": "Smooth Deceleration with Phase-Clock Zero-Velocity Gating and Delay Randomization",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "57.1 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=90.0, Kd=4.5 (Kp/Kd=20.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=0.8 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "51.2 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.036,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.058
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L120).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L190",
+          "event": "Trained with [5ms, 20ms] actuation delay randomization and explicit stance phase lock."
+        },
+        {
+          "timestamp_ms": 2400,
+          "source": "robot-run-log.txt:L120",
+          "event": "Decelerated from 1.2 m/s to full quiet stance in 550ms; peak torque 57.1 Nm."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-012 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-013",
+      "task_category": "external_perturbation_rejection",
+      "scenario_name": "Nominal 35N Lateral Impulse Push Recovery During Stance",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "71.4 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=95.0, Kd=4.8 (Kp/Kd=19.8)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.0 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "54.0 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.046,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.145
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L98).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 1500,
+          "source": "video-notes.md:L41",
+          "event": "35N lateral impulse applied to torso link via calibrated force rod."
+        },
+        {
+          "timestamp_ms": 1950,
+          "source": "robot-run-log.txt:L98",
+          "event": "Executed single protective side-step; recovered equilibrium in 450ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-013 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-014",
+      "task_category": "external_perturbation_rejection",
+      "scenario_name": "Student Policy Distillation Drift Under 60N Dorsal Push (OOD History Encoder Collapse)",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "85.9 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=95.0, Kd=4.5 (Kp/Kd=21.1)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.1 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "56.8 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "7.5 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.099,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 1.0
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=1.00): [sim-log.txt:L215 @ 0ms] Teacher policy trained with privileged external force vector; student 50-step proprioceptive TCN trained only up to 40N pushes.; [robot-run-log.txt:L105 @ 2100ms] 60N dorsal push drove latent embedding L2 distance 3.8x beyond training distribution (OOD=0.92).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L215",
+          "event": "Teacher policy trained with privileged external force vector; student 50-step proprioceptive TCN trained only up to 40N pushes."
+        },
+        {
+          "timestamp_ms": 2100,
+          "source": "robot-run-log.txt:L105",
+          "event": "60N dorsal push drove latent embedding L2 distance 3.8x beyond training distribution (OOD=0.92)."
+        },
+        {
+          "timestamp_ms": 2280,
+          "source": "robot-run-log.txt:L114",
+          "event": "Student policy emitted saturated backward hip extension; safety harness + E-Stop triggered in 7.5ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]",
+          "action": "Remediate Layer 4: Policy & Model [RL Locomotion / Distillation Drift] discrepancy identified in G1-S2R-014 (Student Policy Distillation Drift Under 60N Dorsal Push (OOD History Encoder Collapse)).",
+          "acceptance_criteria": "Re-run G1-S2R-014 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-015",
+      "task_category": "external_perturbation_rejection",
+      "scenario_name": "IMU Angular Velocity LPF Cutoff Mismatch Delaying Push Reflex by 35ms",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": false,
+      "failed_safety_gates": [
+        "G1_TORQUE_LIMIT"
+      ],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": false,
+          "observed_value": "89.4 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=95.0, Kd=4.5 (Kp/Kd=21.1)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.2 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "55.9 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "6.2 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]",
+      "contributing_layers": [
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]"
+      ],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.371,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.85,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.35,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.287
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK] (score=0.85): [interface-diff.md:L78 @ 0ms] Real robot ROS 2 node applied 10Hz Butterworth LPF to gyroscope angular velocity (35ms group delay), whereas Isaac Gym used raw unfiltered angular velocity.; [robot-run-log.txt:L82 @ 1640ms] Delayed push reflex caused late recovery step; knee torque hit 89.4 Nm (>88.0 Nm gate).",
+      "contributing_factors": [
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo] (score=0.37) amplified transient divergence (evidence: robot-run-log.txt:L82 @ 1640ms, robot-run-log.txt:L86 @ 1646ms).",
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] (score=0.35) amplified transient divergence (evidence: robot-run-log.txt:L82 @ 1640ms, robot-run-log.txt:L86 @ 1646ms).",
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.29) amplified transient divergence (evidence: robot-run-log.txt:L82 @ 1640ms, robot-run-log.txt:L86 @ 1646ms).",
+        "Hardware-in-the-Loop safety gate(s) G1_TORQUE_LIMIT intercepted the excursion (evidence: robot-run-log.txt:L86 @ 1646ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "interface-diff.md:L78",
+          "event": "Real robot ROS 2 node applied 10Hz Butterworth LPF to gyroscope angular velocity (35ms group delay), whereas Isaac Gym used raw unfiltered angular velocity."
+        },
+        {
+          "timestamp_ms": 1640,
+          "source": "robot-run-log.txt:L82",
+          "event": "Delayed push reflex caused late recovery step; knee torque hit 89.4 Nm (>88.0 Nm gate)."
+        },
+        {
+          "timestamp_ms": 1646,
+          "source": "robot-run-log.txt:L86",
+          "event": "Torque safety gate G1 triggered E-Stop in 6.2ms."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]",
+          "action": "Remediate Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK] discrepancy identified in G1-S2R-015 (IMU Angular Velocity LPF Cutoff Mismatch Delaying Push Reflex by 35ms).",
+          "acceptance_criteria": "Re-run G1-S2R-015 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-016",
+      "task_category": "external_perturbation_rejection",
+      "scenario_name": "65N Multi-Directional Push Rejection with Matched 40Hz Gyro Filter & Push Curriculum",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "78.6 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=95.0, Kd=4.8 (Kp/Kd=19.8)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=0.9 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "56.1 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.056,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.168
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L110).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L260",
+          "event": "Aligned 40Hz IMU filter in both Isaac Gym and ROS 2 wrapper; expanded push curriculum to 80N."
+        },
+        {
+          "timestamp_ms": 2200,
+          "source": "robot-run-log.txt:L110",
+          "event": "Absorbed 65N dorsal and lateral pushes via two-step capture point recovery; peak torque 78.6 Nm."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-016 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-017",
+      "task_category": "fall_recovery",
+      "scenario_name": "Nominal Protective Squat-and-Damp Transition Upon Trip Detection",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "69.0 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=60.0, Kd=6.0 (Kp/Kd=10.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=0.8 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "50.4 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.046,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.125
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L45).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 900,
+          "source": "robot-run-log.txt:L45",
+          "event": "25mm obstacle trip detected; policy lowered CoM by 18cm and recovered balance without ground impact."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-017 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-018",
+      "task_category": "fall_recovery",
+      "scenario_name": "Hardware E-Stop Relay Contactor Delay (22.5ms) Due to Blocking Logging Lock in Safety Thread",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": false,
+      "failed_safety_gates": [
+        "G1_TORQUE_LIMIT",
+        "G5_ESTOP_LATENCY"
+      ],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": false,
+          "observed_value": "94.8 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=100.0, Kd=4.0 (Kp/Kd=25.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=2.1 ms, loss=0.20%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "62.1 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": false,
+          "observed_value": "22.5 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+      "contributing_layers": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]"
+      ],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.076,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.02,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 1.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.503
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] (score=1.00): [robot-run-log.txt:L302 @ 1200ms] Body pitch exceeded 35 deg fall threshold during obstacle trip test.; [robot-run-log.txt:L310 @ 1222ms] Synchronous disk flush in telemetry logger blocked safety thread for 22.5ms (>15.0ms E-Stop gate); hip torque spiked to 94.8 Nm before damping.",
+      "contributing_factors": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.50) amplified transient divergence (evidence: robot-run-log.txt:L310 @ 1222ms, video-notes.md:L62 @ 1223ms).",
+        "Hardware-in-the-Loop safety gate(s) G1_TORQUE_LIMIT, G5_ESTOP_LATENCY intercepted the excursion (evidence: video-notes.md:L62 @ 1223ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 1200,
+          "source": "robot-run-log.txt:L302",
+          "event": "Body pitch exceeded 35 deg fall threshold during obstacle trip test."
+        },
+        {
+          "timestamp_ms": 1222,
+          "source": "robot-run-log.txt:L310",
+          "event": "Synchronous disk flush in telemetry logger blocked safety thread for 22.5ms (>15.0ms E-Stop gate); hip torque spiked to 94.8 Nm before damping."
+        },
+        {
+          "timestamp_ms": 1223,
+          "source": "video-notes.md:L62",
+          "event": "Overhead gantry caught torso prior to floor contact; zero structural damage."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Remediate Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss] discrepancy identified in G1-S2R-018 (Hardware E-Stop Relay Contactor Delay (22.5ms) Due to Blocking Logging Lock in Safety Thread).",
+          "acceptance_criteria": "Re-run G1-S2R-018 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-019",
+      "task_category": "fall_recovery",
+      "scenario_name": "Self-Collision Between Knee and Forearm During Prone Get-Up Due to Missing Mesh Capsule in Isaac Gym",
+      "deployment_status": "INCIDENT_ABORT",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "82.0 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=85.0, Kd=5.0 (Kp/Kd=17.0)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=1.0 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "59.0 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "6.9 ms",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+      "contributing_layers": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]"
+      ],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.443,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.418
+      },
+      "root_cause_statement": "Primary fault attributed to Layer 1: Simulation Environment [Isaac Gym / MuJoCo] (score=0.44): [sim-log.txt:L310 @ 0ms] URDF simplified collision spheres disabled forearm-to-thigh self-collision pair for faster SPS.; [video-notes.md:L79 @ 1450ms] During prone recovery fold, left forearm contacted left knee shell.",
+      "contributing_factors": [
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift] (score=0.42) amplified transient divergence (evidence: video-notes.md:L79 @ 1450ms, robot-run-log.txt:L412 @ 1457ms)."
+      ],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L310",
+          "event": "URDF simplified collision spheres disabled forearm-to-thigh self-collision pair for faster SPS."
+        },
+        {
+          "timestamp_ms": 1450,
+          "source": "video-notes.md:L79",
+          "event": "During prone recovery fold, left forearm contacted left knee shell."
+        },
+        {
+          "timestamp_ms": 1457,
+          "source": "robot-run-log.txt:L412",
+          "event": "Joint tracking error guard tripped E-Stop within 6.9ms before shell scratch."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Embodied Control & Sim-to-Real Engineer",
+          "priority": "P0-Blocker",
+          "target_layer": "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]",
+          "action": "Remediate Layer 1: Simulation Environment [Isaac Gym / MuJoCo] discrepancy identified in G1-S2R-019 (Self-Collision Between Knee and Forearm During Prone Get-Up Due to Missing Mesh Capsule in Isaac Gym).",
+          "acceptance_criteria": "Re-run G1-S2R-019 in MuJoCo Sim-to-Sim and Unitree G1 gantry test with 5/5 HIL safety gates passing and zero E-Stop triggers.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    },
+    {
+      "trace_id": "G1-S2R-020",
+      "task_category": "fall_recovery",
+      "scenario_name": "Full Prone-to-Standing Recovery with Lock-Free Safety Thread & Full Self-Collision Capsules",
+      "deployment_status": "PASS",
+      "safety_gates_all_passed": true,
+      "failed_safety_gates": [],
+      "safety_gate_checks": [
+        {
+          "gate_id": "G1_TORQUE_LIMIT",
+          "gate_name": "Joint Torque Envelope Gate",
+          "passed": true,
+          "observed_value": "76.2 Nm",
+          "threshold_spec": "<= 88.0 Nm",
+          "detail": "Verifies peak actuator torque remains within rated continuous/short-term safe envelope."
+        },
+        {
+          "gate_id": "G2_PD_IMPEDANCE",
+          "gate_name": "PD Gain & Stiffness-Damping Ratio Gate",
+          "passed": true,
+          "observed_value": "Kp=85.0, Kd=5.5 (Kp/Kd=15.5)",
+          "threshold_spec": "Kp/Kd <= 35.0",
+          "detail": "Prevents high-frequency resonant limit-cycle chatter from under-damped impedance gains."
+        },
+        {
+          "gate_id": "G3_COMM_JITTER",
+          "gate_name": "DDS/ROS 2 Real-Time Jitter & Packet Loss Gate",
+          "passed": true,
+          "observed_value": "jitter=0.7 ms, loss=0.00%",
+          "threshold_spec": "jitter <= 5.0 ms, loss <= 1.00%",
+          "detail": "Ensures deterministic 500Hz motor command delivery without control-loop phase lag."
+        },
+        {
+          "gate_id": "G4_THERMAL_BOUND",
+          "gate_name": "Motor Winding Thermal Derating Gate",
+          "passed": true,
+          "observed_value": "57.5 C",
+          "threshold_spec": "<= 75.0 C",
+          "detail": "Prevents MOSFET/winding thermal derating and mid-stride knee torque collapse."
+        },
+        {
+          "gate_id": "G5_ESTOP_LATENCY",
+          "gate_name": "Emergency Stop & Protective Damping Latency Gate",
+          "passed": true,
+          "observed_value": "0.0 ms (Not Triggered)",
+          "threshold_spec": "<= 15.0 ms",
+          "detail": "Guarantees non-blocking real-time transition to protective damping upon fault detection."
+        }
+      ],
+      "primary_root_cause_layer": "NONE (Nominal Deployment)",
+      "contributing_layers": [],
+      "layer_attribution_scores": {
+        "Layer 1: Simulation Environment [Isaac Gym / MuJoCo]": 0.046,
+        "Layer 2: Interface & Communication Protocol [DDS / ROS 2 / Motor SDK]": 0.0,
+        "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]": 0.0,
+        "Layer 4: Policy & Model [RL Locomotion / Distillation Drift]": 0.147
+      },
+      "root_cause_statement": "No fault occurred; deployment completed nominally within all 5 safety gates (verified at robot-run-log.txt:L520).",
+      "contributing_factors": [],
+      "reconstructed_timeline": [
+        {
+          "timestamp_ms": 0,
+          "source": "sim-log.txt:L340",
+          "event": "Enabled full convex-hull self-collision pairs and lock-free SPSC ring buffer for RT safety thread."
+        },
+        {
+          "timestamp_ms": 3800,
+          "source": "robot-run-log.txt:L520",
+          "event": "Completed prone-to-standing recovery in 3.8s; minimum self-clearance 34mm, all 5 safety gates passed."
+        }
+      ],
+      "action_items": [
+        {
+          "owner_role": "Sim-to-Real Verification Lead",
+          "priority": "P3-Routine",
+          "target_layer": "Layer 3: Hardware & Safety Boundary [Thermal / Torque / E-Stop / Packet Loss]",
+          "action": "Archive nominal telemetry baseline for G1-S2R-020 into regression suite.",
+          "acceptance_criteria": "Trajectory RMSE < 0.06 rad and 5/5 HIL safety gates pass on nightly CI.",
+          "requires_safety_gate": true
+        }
+      ],
+      "missing_evidence": [],
+      "unconfirmed_hypotheses": [],
+      "blameless_tone_verified": true
+    }
+  ]
+}
